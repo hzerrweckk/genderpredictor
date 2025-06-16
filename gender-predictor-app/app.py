@@ -26,9 +26,10 @@ user_input = st.text_area("Introduce tu texto aquí:", height=200)
 if st.button("Predecir género"):
     if user_input.strip() != "":
         prediction = classifier(user_input)
-        label = prediction[0]['label']
+        label_raw = prediction[0]['label']
+        label = id2label.get(label_raw, label_raw)  # traducir si existe en el diccionario
         score = prediction[0]['score']
 
-        st.success(f"Predicción: **{label}** con confianza de **{score:.2f}**")
+        st.success(f"Predicción: **{label}** con confianza de **{score:.2%}**")
     else:
         st.warning("Por favor, introduce un texto para predecir.")
