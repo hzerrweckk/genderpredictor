@@ -2,6 +2,11 @@
 import streamlit as st
 from transformers import pipeline
 
+id2label = {
+    "LABEL_0": "Male",
+    "LABEL_1": "Female"
+}
+
 # Cargar el pipeline de Hugging Face
 @st.cache_resource
 def load_model():
