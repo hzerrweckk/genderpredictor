@@ -1,29 +1,44 @@
-# app.py
 import streamlit as st
-from transformers import pipeline
+import torch
+from transformers import AutoTokenizer, AutoModelForSequenceClassification
+from torch.nn.functional import softmax
 
-# Cargar el pipeline de Hugging Face
+# Reemplaza con tu usuario si es necesario
+MODEL_NAME = "tu_usuario/gender-text-predictor"
+
+# Diccionario para convertir IDs en etiquetas legibles
+id2label = {0: "Male", 1: "Female"}
+
+# Cargar modelo y tokenizer desde Hugging Face Hub
 @st.cache_resource
 def load_model():
-    return pipeline("text-classification", model="hzerrweckk0101/gender-text-predictor")
+    tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
+    model = AutoModelForSequenceClassification.from_pretrained(MODEL_NAME)
+    model.eval()
+    return tokenizer, model
 
-# Cargar modelo
-classifier = load_model()
+tokenizer, model = load_model()
 
-# Interfaz de usuario
-st.title("Gender Text Predictor")
-st.write("Escribe un texto para predecir el género de quien lo escribió.")
+# Función de predicción
+def predict_gender(text):
+    inputs = tokenizer(text, return_tensors="pt", truncation=True, padding=True)
+    with torch.no_grad():
+        logits = model(**inputs).logits
+        probs = softmax(logits, dim=1)
+    pred = torch.argmax(probs).item()
+    confidence = probs[0][pred].item()
+    gender = id2label.get(pred, f"LABEL_{pred}")
+    return gender, confidence
 
-# Entrada de texto
-user_input = st.text_area("Introduce tu texto aquí:", height=200)
+# Interfaz con Streamlit
+st.title("🧠 Gender Prediction from Writing")
+st.write("Enter a text to predict the author's gender based on writing style.")
 
-# Botón para predecir
-if st.button("Predecir género"):
-    if user_input.strip() != "":
-        prediction = classifier(user_input)
-        label = prediction[0]['label']
-        score = prediction[0]['score']
+user_input = st.text_area("Enter text here:", height=200)
 
-        st.success(f"Predicción: **{label}** con confianza de **{score:.2f}**")
+if st.button("Predict"):
+    if user_input.strip():
+        gender, confidence = predict_gender(user_input)
+        st.success(f"Predicted Gender: {gender} ({confidence:.2%} confidence)")
     else:
-        st.warning("Por favor, introduce un texto para predecir.")
+        st.warning("Please enter some text first.")
